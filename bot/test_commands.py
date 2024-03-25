@@ -9,7 +9,7 @@ class Commands(app_commands.Group):
 
     @app_commands.command(name="hello", description="Responds with a greeting")
     async def hello(self, interaction):
-        await interaction.response.send_message(content="Привет, {0.user.mention}!".format(interaction.user), ephemeral=True)
+        await interaction.response.send_message(content=f"Привет, {interaction.user.mention}!", ephemeral=True)
 
 
 async def setup(bot):
