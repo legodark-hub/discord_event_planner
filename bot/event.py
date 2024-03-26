@@ -1,3 +1,4 @@
+import datetime
 import discord
 from discord import app_commands
 
@@ -18,6 +19,7 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
                 placeholder="Введите название события...",
                 min_length=1,
                 max_length=100,
+                required=True,
             )
         )
         self.add_item(
@@ -25,14 +27,16 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
                 label="Описание",
                 placeholder="Введите описание...",
                 style=discord.TextStyle.paragraph,
+                max_length=300,
             )
         )
         self.add_item(
             discord.ui.TextInput(
                 label="Время сбора",
-                placeholder="Введите время сбора...",
-                min_length=1,
-                max_length=100,
+                placeholder="Введите время сбора (ЧЧ:ММ ДД.ММ.ГГГГ)...",
+                min_length=16,
+                max_length=19,
+                required=True,
             )
         )
         self.add_item(
@@ -40,14 +44,33 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
                 label="Количество участников",
                 placeholder="Введите количество участников...",
                 min_length=1,
-                max_length=100,
+                max_length=2,
+                required=True,
             )
         )
 
     async def on_submit(self, interaction: discord.Interaction):
+        try:
+            datetime.datetime.strptime(self.children[2].value, "%H:%M %d.%m.%Y")
+        except ValueError:
+            await interaction.response.send_message(
+                "Формат времени должен быть ЧЧ:ММ ДД.ММ.ГГГГ", ephemeral=True
+            )
+            return
+
+        participants = self.children[3].value
+        if not participants.isdigit() or int(participants) <= 0:
+            await interaction.response.send_message(
+                "Количество участников должно быть положительным целым числом.",
+                ephemeral=True,
+            )
+            return
+
         await interaction.response.send_message(
-            f"Название события: {self.children[0].value}\nОписание: {self.children[1].value}\nВремя сбора: {self.children[2].value}\nКоличество участников: {self.children[3].value}",
-            ephemeral=True,
+            f"Название события: {self.children[0].value}\n"
+            f"Описание: {self.children[1].value}\n"
+            f"Время сбора: {self.children[2].value}\n"
+            f"Количество участников: {self.children[3].value}"
         )
 
 
