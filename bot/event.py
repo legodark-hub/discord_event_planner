@@ -32,7 +32,7 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
         )
         self.add_item(
             discord.ui.TextInput(
-                label="Время сбора",
+                label="Время сбора (ЧЧ:ММ ДД.ММ.ГГГГ)",
                 placeholder="Введите время сбора (ЧЧ:ММ ДД.ММ.ГГГГ)...",
                 min_length=16,
                 max_length=19,
