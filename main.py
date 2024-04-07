@@ -4,9 +4,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-load_dotenv()
-TOKEN = os.getenv("DISCORD_BOT_TOKEN")
-
 intents = discord.Intents().all()
 intents.message_content = True
 bot = commands.Bot(command_prefix="$", intents=intents)
@@ -24,4 +21,6 @@ async def on_ready():
 
 
 if __name__ == "__main__":
+    load_dotenv()
+    TOKEN = os.getenv("DISCORD_BOT_TOKEN")
     bot.run(TOKEN)
