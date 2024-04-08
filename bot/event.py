@@ -1,12 +1,16 @@
 import datetime
 import discord
-from discord import app_commands
+from discord import Button, ButtonStyle, app_commands
 
 
 class Commands(app_commands.Group):
     @app_commands.command(name="create_event", description="Создание нового события")
     async def create_event(self, interaction: discord.Interaction):
         await interaction.response.send_modal(EventForm())
+
+    @app_commands.command(name="test_event", description="тест события")
+    async def test_event(self, interaction: discord.Interaction):
+        await event_message(interaction, "Тестовое событие", "Тестовое описание", datetime.datetime.now(), 5)
 
 
 class EventForm(discord.ui.Modal, title="Новое событие"):
@@ -41,7 +45,7 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
         )
         self.add_item(
             discord.ui.TextInput(
-                label="Количество участников",
+                label="Количество участников (кроме вас)",
                 placeholder="Введите количество участников...",
                 min_length=1,
                 max_length=2,
@@ -66,13 +70,33 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
             )
             return
 
-        await interaction.response.send_message(
-            f"Название события: {self.children[0].value}\n"
-            f"Описание: {self.children[1].value}\n"
-            f"Время сбора: {self.children[2].value}\n"
-            f"Количество участников: {self.children[3].value}"
-        )
+        # await interaction.response.send_message(
+        #     f"Название события: {self.children[0].value}\n"
+        #     f"Описание: {self.children[1].value}\n"
+        #     f"Время сбора: {self.children[2].value}\n"
+        #     f"Количество участников: {self.children[3].value}"
+        # )
 
+        event_name = self.children[0].value
+        description = self.children[1].value
+        time = self.children[2].value
+        participants_needed = self.children[3].value
+
+        await event_message(interaction, event_name, description, time, participants_needed)
+
+
+
+async def event_message(interaction: discord.Interaction, event_name, description, time, participants_needed, participant = None):
+    participants = []
+    embed = discord.Embed(
+        title=event_name,
+        description=description,
+    )
+    embed.add_field(name="Время сбора:", value=time, inline=True)
+    embed.add_field(name="Нужно участников:", value=participants_needed, inline=True)
+    embed.add_field(name=f"Запросил:", value=interaction.user.mention, inline=True)
+    embed.add_field(name="Записались:", value="\n".join(participants), inline=False)
+    await interaction.response.send_message(embed=embed)
 
 async def setup(bot):
     bot.tree.add_command(Commands(name="event", description="event commands"))
