@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 import discord
-from discord import app_commands
 from discord.ext import commands
+
 
 intents = discord.Intents().all()
 intents.message_content = True
@@ -20,7 +20,10 @@ async def on_ready():
     print(f"We have logged in as {bot.user}")
 
 
-if __name__ == "__main__":
+def main():
     load_dotenv()
     TOKEN = os.getenv("DISCORD_BOT_TOKEN")
     bot.run(TOKEN)
+
+if __name__ == "__main__":
+    main()
