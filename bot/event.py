@@ -1,6 +1,6 @@
 import datetime
 import discord
-from discord import Button, ButtonStyle, app_commands
+from discord import app_commands
 
 
 class Commands(app_commands.Group):
@@ -10,7 +10,15 @@ class Commands(app_commands.Group):
 
     @app_commands.command(name="test_event", description="тест события")
     async def test_event(self, interaction: discord.Interaction):
-        await event_message(interaction, "Тестовое событие", "Тестовое описание", datetime.datetime.now(), 5)
+        event = Event(
+            interaction,
+            interaction.user,
+            "Тестовое событие",
+            "Тестовое описание",
+            datetime.datetime.now(),
+            5,
+        )
+        await event.send(interaction)
 
 
 class EventForm(discord.ui.Modal, title="Новое событие"):
@@ -70,33 +78,115 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
             )
             return
 
-        # await interaction.response.send_message(
-        #     f"Название события: {self.children[0].value}\n"
-        #     f"Описание: {self.children[1].value}\n"
-        #     f"Время сбора: {self.children[2].value}\n"
-        #     f"Количество участников: {self.children[3].value}"
-        # )
-
         event_name = self.children[0].value
         description = self.children[1].value
         time = self.children[2].value
         participants_needed = self.children[3].value
 
-        await event_message(interaction, event_name, description, time, participants_needed)
+        event = Event(
+            interaction,
+            interaction.user,
+            event_name,
+            description,
+            time,
+            participants_needed,
+        )
+        await event.send(interaction)
 
 
+class Event(discord.ui.View):
 
-async def event_message(interaction: discord.Interaction, event_name, description, time, participants_needed, participant = None):
-    participants = []
-    embed = discord.Embed(
-        title=event_name,
-        description=description,
-    )
-    embed.add_field(name="Время сбора:", value=time, inline=True)
-    embed.add_field(name="Нужно участников:", value=participants_needed, inline=True)
-    embed.add_field(name=f"Запросил:", value=interaction.user.mention, inline=True)
-    embed.add_field(name="Записались:", value="\n".join(participants), inline=False)
-    await interaction.response.send_message(embed=embed)
+    def __init__(
+        self,
+        interaction: discord.Interaction,
+        author: discord.User,
+        event_name: str,
+        description: str,
+        time: datetime,
+        participants_needed: int,
+    ):
+        super().__init__()
+        self.interaction = interaction
+        self.author = author.mention
+        self.event_name = event_name
+        self.description = description
+        self.time = time
+        self.participants_needed = participants_needed
+        self.participants = []
+        message: discord.abc.Messageable = None
+
+    async def is_author(self, interaction: discord.Interaction) -> bool:
+        return interaction.user == self.author
+
+    async def on_timeout(self):
+        # TODO: timers
+        pass
+
+    def create_message(self):
+        embed = discord.Embed(
+            title=self.event_name,
+            description=self.description,
+        )
+        embed.add_field(name=f"Запросил:", value=self.author, inline=True)
+        embed.add_field(
+            name="Нужно участников:", value=self.participants_needed, inline=True
+        )
+        embed.add_field(name="Время сбора:", value=self.time, inline=True)
+        embed.add_field(
+            name="Записались:",
+            value="\n".join(self.participants) if self.participants else "Никого",
+            inline=False,
+        )
+        return embed
+
+    def participants_full(self):
+        return len(self.participants) >= self.participants_needed
+
+    async def send(self, interaction: discord.Interaction):
+        embed = self.create_message()
+        await interaction.response.send_message(view=self, embed=embed)
+        self.message = await interaction.original_response()
+
+    async def update_message(self):
+        if self.participants_full():
+            self.join.disabled = True
+
+        embed = self.create_message()
+        await self.message.edit(view=self, embed=embed)
+
+    @discord.ui.button(label="Записаться", style=discord.ButtonStyle.green)
+    async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.message = interaction.message
+
+        if not self.participants_full():
+            await interaction.response.defer()
+            self.participants.append(interaction.user.mention)
+        else:
+            await interaction.response.send_message(
+                "Свободных мест нет", ephemeral=True
+            )
+            return
+
+        await self.update_message()
+
+    @discord.ui.button(label="Отписаться", style=discord.ButtonStyle.red)
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.message = interaction.message
+
+        if interaction.user.mention in self.participants:
+            await interaction.response.defer()
+            self.participants.remove(interaction.user.mention)
+        else:
+            await interaction.response.send_message("Вы не записаны", ephemeral=True)
+            return
+
+        await self.update_message()
+
+
+@discord.ui.button(label="Записаться", style=discord.ButtonStyle.green)
+async def join(interaction: discord.Interaction, button: discord.ui.Button):
+    await interaction.response.defer()
+
 
 async def setup(bot):
     bot.tree.add_command(Commands(name="event", description="event commands"))
