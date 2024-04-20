@@ -38,6 +38,7 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
             discord.ui.TextInput(
                 label="Описание",
                 placeholder="Введите описание...",
+                required=False,
                 style=discord.TextStyle.paragraph,
                 max_length=300,
             )
@@ -111,7 +112,7 @@ class Event(discord.ui.View):
         self.event_name = event_name
         self.description = description
         self.time = time
-        self.participants_needed = participants_needed
+        self.participants_needed = int(participants_needed)
         self.participants = []
         message: discord.abc.Messageable = None
 
@@ -150,6 +151,8 @@ class Event(discord.ui.View):
     async def update_message(self):
         if self.participants_full():
             self.join.disabled = True
+        else:
+            self.join.disabled = False
 
         embed = self.create_message()
         await self.message.edit(view=self, embed=embed)
@@ -158,13 +161,20 @@ class Event(discord.ui.View):
     async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.message = interaction.message
 
-        if not self.participants_full():
-            await interaction.response.defer()
-            self.participants.append(interaction.user.mention)
+        if (
+            interaction.user.mention not in self.participants
+            and interaction.user.mention != self.author
+        ):
+            if not self.participants_full():
+                await interaction.response.defer()
+                self.participants.append(interaction.user.mention)
+            else:
+                await interaction.response.send_message(
+                    "Свободных мест нет", ephemeral=True
+                )
+                return
         else:
-            await interaction.response.send_message(
-                "Свободных мест нет", ephemeral=True
-            )
+            await interaction.response.send_message("Вы уже записаны", ephemeral=True)
             return
 
         await self.update_message()
@@ -173,6 +183,9 @@ class Event(discord.ui.View):
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.message = interaction.message
 
+        if interaction.user.mention == self.author:
+            await interaction.response.defer()
+            return
         if interaction.user.mention in self.participants:
             await interaction.response.defer()
             self.participants.remove(interaction.user.mention)
