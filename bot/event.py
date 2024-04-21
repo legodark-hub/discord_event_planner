@@ -15,7 +15,7 @@ class Commands(app_commands.Group):
             interaction.user,
             "Тестовое событие",
             "Тестовое описание",
-            datetime.datetime.now(),
+            datetime.datetime.now() + datetime.timedelta(minutes=30),
             5,
         )
         await event.send(interaction)
@@ -81,7 +81,7 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
 
         event_name = self.children[0].value
         description = self.children[1].value
-        time = self.children[2].value
+        time = datetime.datetime.strptime(self.children[2].value, "%H:%M %d.%m.%Y")
         participants_needed = self.children[3].value
 
         event = Event(
@@ -103,7 +103,7 @@ class Event(discord.ui.View):
         author: discord.User,
         event_name: str,
         description: str,
-        time: datetime,
+        time: datetime.datetime,
         participants_needed: int,
     ):
         super().__init__()
@@ -132,7 +132,7 @@ class Event(discord.ui.View):
         embed.add_field(
             name="Нужно участников:", value=self.participants_needed, inline=True
         )
-        embed.add_field(name="Время сбора:", value=self.time, inline=True)
+        embed.add_field(name="Время сбора:", value=f"<t:{int(self.time.timestamp())}> \n<t:{int(self.time.timestamp())}:R>", inline=True)
         embed.add_field(
             name="Записались:",
             value="\n".join(self.participants) if self.participants else "Никого",
