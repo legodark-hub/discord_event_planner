@@ -64,10 +64,16 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            datetime.datetime.strptime(self.children[2].value, "%H:%M %d.%m.%Y")
+            time = datetime.datetime.strptime(self.children[2].value, "%H:%M %d.%m.%Y")
         except ValueError:
             await interaction.response.send_message(
                 "Формат времени должен быть ЧЧ:ММ ДД.ММ.ГГГГ", ephemeral=True
+            )
+            return
+        
+        if time <= datetime.datetime.now():
+            await interaction.response.send_message(
+                "Время сбора не может быть в прошлом", ephemeral=True
             )
             return
 
@@ -78,10 +84,12 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
                 ephemeral=True,
             )
             return
+        
+        
 
         event_name = self.children[0].value
         description = self.children[1].value
-        time = datetime.datetime.strptime(self.children[2].value, "%H:%M %d.%m.%Y")
+        # time = datetime.datetime.strptime(self.children[2].value, "%H:%M %d.%m.%Y")
         participants_needed = self.children[3].value
 
         event = Event(
