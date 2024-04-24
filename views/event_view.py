@@ -16,7 +16,7 @@ class Event(discord.ui.View):
     ):
         super().__init__(timeout=None)
         self.interaction = interaction
-        self.author = author.mention
+        self.author = author
         self.event_name = event_name
         self.description = description
         self.time = time
@@ -29,7 +29,7 @@ class Event(discord.ui.View):
         return interaction.user == self.author
 
     async def on_timeout(self):
-        # TODO: timer for event notification
+        # TODO: timer for event notification for participants
         pass
 
     def create_message(self):
@@ -37,7 +37,7 @@ class Event(discord.ui.View):
             title=self.event_name,
             description=self.description,
         )
-        embed.add_field(name=f"Запросил:", value=self.author, inline=True)
+        embed.add_field(name=f"Запросил:", value=self.author.mention, inline=True)
         embed.add_field(
             name="Нужно участников:", value=self.participants_needed, inline=True
         )
@@ -48,7 +48,11 @@ class Event(discord.ui.View):
         )
         embed.add_field(
             name="Записались:",
-            value="\n".join(self.participants) if self.participants else "Никого",
+            value=(
+                "\n".join([user.mention for user in self.participants])
+                if self.participants
+                else "Никого"
+            ),
             inline=False,
         )
         return embed
@@ -77,12 +81,13 @@ class Event(discord.ui.View):
         self.message = interaction.message
 
         if (
-            interaction.user.mention not in self.participants
-            and interaction.user.mention != self.author
+            interaction.user not in self.participants
+            # # TODO: для тестов, раскомментировать 
+            # and interaction.user != self.author
         ):
             if not self.participants_full():
                 await interaction.response.defer()
-                self.participants.append(interaction.user.mention)
+                self.participants.append(interaction.user)
             else:
                 await interaction.response.send_message(
                     "Свободных мест нет", ephemeral=True
@@ -91,7 +96,6 @@ class Event(discord.ui.View):
         else:
             await interaction.response.send_message("Вы уже записаны", ephemeral=True)
             return
-
         await self.update_message()
 
     @discord.ui.button(
@@ -100,12 +104,12 @@ class Event(discord.ui.View):
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.message = interaction.message
 
-        if interaction.user.mention == self.author:
+        if interaction.user == self.author:
             await interaction.response.defer()
             return
-        if interaction.user.mention in self.participants:
+        if interaction.user in self.participants:
             await interaction.response.defer()
-            self.participants.remove(interaction.user.mention)
+            self.participants.remove(interaction.user)
         else:
             await interaction.response.send_message("Вы не записаны", ephemeral=True)
             return
