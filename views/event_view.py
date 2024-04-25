@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import uuid
 import discord
@@ -23,14 +24,48 @@ class Event(discord.ui.View):
         self.participants_needed = int(participants_needed)
         self.participants = []
         self.id = uuid.uuid4()
+        self.reminder_time = 5
+        embed = self.create_message()
         message: discord.abc.Messageable = None
 
     async def is_author(self, interaction: discord.Interaction) -> bool:
         return interaction.user == self.author
 
-    async def on_timeout(self):
-        # TODO: timer for event notification for participants
-        pass
+    async def set_reminder(self):
+        delay_minutes: datetime.timedelta
+        if self.time - datetime.datetime.now() >= datetime.timedelta(minutes=self.reminder_time):
+            delay_minutes = (self.time - datetime.datetime.now()) - datetime.timedelta(
+                minutes=self.reminder_time
+            )
+        else:
+            delay_minutes = self.time - datetime.datetime.now()
+        await asyncio.sleep(delay_minutes.total_seconds())
+        message = self.create_reminder_message()
+        await self.author.send(embed=message)
+        for user in self.participants:
+            await user.send(embed=message)
+
+    def create_reminder_message(self):
+        reminder_embed = discord.Embed(
+            title=f"У вас запланировано событие <t:{int(self.time.timestamp())}:R>:",
+            description=f"{self.event_name}",
+        )
+        reminder_embed.add_field(
+            name=f"Описание:", value=self.description, inline=False
+        )
+        reminder_embed.add_field(
+            name=f"Запросил:", value=self.author.mention, inline=False
+        )
+        reminder_embed.add_field(
+            name="Записались:",
+            value=(
+                "\n".join([user.mention for user in self.participants])
+                if self.participants
+                else "Никого"
+            ),
+            inline=False,
+        )
+        return reminder_embed
 
     def create_message(self):
         embed = discord.Embed(
@@ -61,9 +96,10 @@ class Event(discord.ui.View):
         return len(self.participants) >= self.participants_needed
 
     async def send(self, interaction: discord.Interaction):
-        embed = self.create_message()
-        await interaction.response.send_message(view=self, embed=embed)
+        self.embed = self.create_message()
+        await interaction.response.send_message(view=self, embed=self.embed)
         self.message = await interaction.original_response()
+        await self.set_reminder()
 
     async def update_message(self):
         if self.participants_full():
@@ -71,8 +107,13 @@ class Event(discord.ui.View):
         else:
             self.join.disabled = False
 
-        embed = self.create_message()
-        await self.message.edit(view=self, embed=embed)
+        if not self.participants:
+            self.cancel.disabled = True
+        else:
+            self.cancel.disabled = False
+
+        self.embed = self.create_message()
+        await self.message.edit(view=self, embed=self.embed)
 
     @discord.ui.button(
         label="Записаться", style=discord.ButtonStyle.green, custom_id="join"
@@ -81,8 +122,9 @@ class Event(discord.ui.View):
         self.message = interaction.message
 
         if (
-            interaction.user not in self.participants
-            # # TODO: для тестов, раскомментировать 
+            interaction.user
+            not in self.participants
+            # # TODO: для тестов, раскомментировать
             # and interaction.user != self.author
         ):
             if not self.participants_full():
@@ -99,7 +141,10 @@ class Event(discord.ui.View):
         await self.update_message()
 
     @discord.ui.button(
-        label="Отписаться", style=discord.ButtonStyle.red, custom_id="cancel"
+        label="Отписаться",
+        style=discord.ButtonStyle.red,
+        custom_id="cancel",
+        disabled=True,
     )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.message = interaction.message
