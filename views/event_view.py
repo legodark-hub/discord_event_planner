@@ -33,7 +33,9 @@ class Event(discord.ui.View):
 
     async def set_reminder(self):
         delay_minutes: datetime.timedelta
-        if self.time - datetime.datetime.now() >= datetime.timedelta(minutes=self.reminder_time):
+        if self.time - datetime.datetime.now() >= datetime.timedelta(
+            minutes=self.reminder_time
+        ):
             delay_minutes = (self.time - datetime.datetime.now()) - datetime.timedelta(
                 minutes=self.reminder_time
             )
@@ -108,15 +110,15 @@ class Event(discord.ui.View):
             self.join.disabled = False
 
         if not self.participants:
-            self.cancel.disabled = True
+            self.decline.disabled = True
         else:
-            self.cancel.disabled = False
+            self.decline.disabled = False
 
         self.embed = self.create_message()
         await self.message.edit(view=self, embed=self.embed)
 
     @discord.ui.button(
-        label="Записаться", style=discord.ButtonStyle.green, custom_id="join"
+        label="Записаться", style=discord.ButtonStyle.green, custom_id=str(uuid.uuid4())
     )
     async def join(self, interaction: discord.Interaction, button: discord.ui.Button):
         self.message = interaction.message
@@ -143,10 +145,12 @@ class Event(discord.ui.View):
     @discord.ui.button(
         label="Отписаться",
         style=discord.ButtonStyle.red,
-        custom_id="cancel",
+        custom_id=str(uuid.uuid4()),
         disabled=True,
     )
-    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def decline(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         self.message = interaction.message
 
         if interaction.user == self.author:
