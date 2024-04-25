@@ -12,9 +12,16 @@ commands_dir = "app_commands"
 logger = logging.getLogger("discord")
 
 
-@bot.command(name="ping1", help="Responds with pong")
-async def ping1(ctx):
-    await ctx.send("pong")
+@bot.command(name="reload", help="reload all commands", hidden=True)
+@commands.is_owner()
+async def reload(ctx):
+    for filename in os.listdir(commands_dir):
+        if filename.endswith(".py") and filename != "__init__.py":
+            try:
+                await bot.reload_extension(f"{commands_dir}.{filename[:-3]}")
+                logger.info(f"Reloaded {filename}")
+            except Exception as e:
+                logger.error(f"Error reloading {filename}: {e}")
 
 
 @bot.event
