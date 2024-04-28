@@ -17,7 +17,7 @@ class Commands(app_commands.Group):
             interaction.user,
             "Тестовое событие",
             "Тестовое описание",
-            datetime.datetime.now() + datetime.timedelta(minutes=30),
+            datetime.datetime.now() + datetime.timedelta(minutes=1),
             5,
         )
         await event.send(interaction)
