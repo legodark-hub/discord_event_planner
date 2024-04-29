@@ -10,34 +10,33 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
         self.add_item(
             discord.ui.TextInput(
                 label="Название события",
-                placeholder="Введите название события...",
-                min_length=1,
-                max_length=100,
+                placeholder="Обязательное к заполнению",
+                max_length=150,
                 required=True,
             )
         )
         self.add_item(
             discord.ui.TextInput(
                 label="Описание",
-                placeholder="Введите описание...",
+                placeholder="Не обязательное к заполнению",
                 required=False,
                 style=discord.TextStyle.paragraph,
-                max_length=300,
+                max_length=500,
             )
         )
         self.add_item(
             discord.ui.TextInput(
                 label="Время сбора (ЧЧ:ММ ДД.ММ.ГГГГ)",
-                placeholder="Введите время сбора (ЧЧ:ММ ДД.ММ.ГГГГ)...",
+                default=(datetime.datetime.now()+datetime.timedelta(hours=1)).strftime("%H:%M %d.%m.%Y"),
                 min_length=16,
-                max_length=19,
+                max_length=16,
                 required=True,
             )
         )
         self.add_item(
             discord.ui.TextInput(
                 label="Количество участников (кроме вас)",
-                placeholder="Введите количество участников...",
+                placeholder="Целое положительное число",
                 min_length=1,
                 max_length=2,
                 required=True,
