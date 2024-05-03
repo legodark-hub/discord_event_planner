@@ -2,7 +2,7 @@ import os
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
-from database.models import Base, EventParticipants, User
+from database.models import Base, EventParticipants, User, Event
 from contextlib import asynccontextmanager
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -14,8 +14,10 @@ async def connect_to_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
+
 def async_session_generator():
     return sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+
 
 @asynccontextmanager
 async def get_session():
@@ -32,10 +34,27 @@ async def get_session():
 
 async def get_user_by_id(discord_id):
     async with get_session() as session:
-        user = await session.execute(
-            select(User).filter(User.discord_id == discord_id)
-        )
+        user = await session.execute(select(User).where(User.discord_id == discord_id))
         return user.scalar_one_or_none()
+
+
+async def get_event_by_id(message_id):
+    async with get_session() as session:
+        event = await session.execute(
+            select(Event).where(Event.message_id == message_id)
+        )
+        return event.scalar_one_or_none()
+
+
+async def get_participant(user_id, event_id):
+    async with get_session() as session:
+        participant = await session.execute(
+            select(EventParticipants).where(
+                EventParticipants.user_id == user_id,
+                EventParticipants.event_id == event_id,
+            )
+        )
+        return participant.scalar_one_or_none()
 
 
 async def add_user(user_data):
@@ -50,13 +69,25 @@ async def add_event(event_data):
         await session.commit()
 
 
+async def remove_event(message_id):
+    async with get_session() as session:
+        event = await session.execute(
+            select(Event).where(Event.message_id == message_id)
+        ).scalar_one_or_none()
+        if event:
+            session.delete(event)
+            await session.commit()
+
+
 async def remove_participant(user_id, event_id):
     async with get_session() as session:
         participant = await session.execute(
-            select(EventParticipants).where(
+            select(EventParticipants)
+            .where(
                 user_id == user_id,
                 event_id == event_id,
-            ).scalar_one_or_none()
+            )
+            .scalar_one_or_none()
         )
         if participant:
             session.delete(participant)

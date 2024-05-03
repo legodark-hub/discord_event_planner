@@ -2,6 +2,8 @@ import asyncio
 import datetime
 import uuid
 import discord
+from database.db import add_event, add_user, remove_participant, get_user_by_id
+import database.models as models
 
 
 class Event(discord.ui.View):
@@ -52,7 +54,7 @@ class Event(discord.ui.View):
         delay = self.time - datetime.datetime.now()
         await asyncio.sleep(delay.total_seconds())
         await self.message.edit(view=None, embed=self.embed)
-        await self.message.delete(delay=30)  # TODO: change delay
+        await self.message.delete(delay=60*10) 
 
     async def notify_participants(self, text=None, embed=None):
         await self.author.send(content=text, embed=embed)
@@ -92,6 +94,21 @@ class Event(discord.ui.View):
         await interaction.response.send_message(view=self, embed=self.embed)
         self.message = await interaction.original_response()
 
+        author = await get_user_by_id(str(self.author.id))
+        if author is None:
+            new_user = models.User(discord_id=str(self.author.id))
+            await add_user(new_user)
+
+        event_data = models.Event(
+            message_id=str(self.message.id),
+            name=self.event_name,
+            description=self.description,
+            author_id=str(self.author.id),
+            time = self.time,
+            participants_needed = self.participants_needed,
+        )
+        await add_event(event_data)
+
     async def update_message(self):
         if self.participants_full():
             self.join.disabled = True
@@ -120,8 +137,7 @@ class Event(discord.ui.View):
         if (
             interaction.user
             not in self.participants
-            # # TODO: для тестов, раскомментировать
-            # and interaction.user != self.author
+            and interaction.user != self.author
         ):
             if not self.participants_full():
                 await interaction.response.defer()
@@ -161,7 +177,7 @@ class Event(discord.ui.View):
 
     @discord.ui.button(
         label="Отменить",
-        style=discord.ButtonStyle.red,
+        style=discord.ButtonStyle.blurple,
         custom_id=str(uuid.uuid4()),
     )
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
