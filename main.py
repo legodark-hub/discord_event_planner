@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 
+
 intents = discord.Intents().default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="$", intents=intents)
@@ -26,6 +27,12 @@ async def reload(ctx):
 
 @bot.event
 async def on_ready():
+    try:
+        await bot.load_extension("database.db")
+        logger.info("Connected to database")
+    except Exception as e:
+        logger.error(f"Error connecting to database: {e}")
+
     for filename in os.listdir(commands_dir):
         if filename.endswith(".py") and filename != "__init__.py":
             try:
@@ -34,6 +41,7 @@ async def on_ready():
             except Exception as e:
                 logger.error(f"Error loading {filename}: {e}")
     await bot.tree.sync()
+
     logger.info(f"Logged in as {bot.user}")
 
 
