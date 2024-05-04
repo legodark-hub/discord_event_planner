@@ -182,6 +182,7 @@ class Event(discord.ui.View):
         style=discord.ButtonStyle.blurple,
         custom_id=str(uuid.uuid4()),
     )
+# TODO: доавить возможность отмены админом сервера
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user == self.author:
             await interaction.response.defer()

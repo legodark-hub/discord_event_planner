@@ -21,7 +21,7 @@ class Commands(app_commands.Group):
             5,
         )
         await event.send(interaction)
-
+# TODO: добавит команду просмотра истории событий
 
 async def setup(bot):
     bot.tree.add_command(Commands(name="event", description="event commands"))
