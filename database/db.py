@@ -10,9 +10,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_async_engine(DATABASE_URL)
 
 
-async def connect_to_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+# async def connect_to_db():
+#     async with engine.begin() as conn:
+#         await conn.run_sync(Base.metadata.create_all)
 
 
 def async_session_generator():
@@ -107,5 +107,5 @@ async def remove_participant(participant_id, event_id):
             await session.commit()
 
 
-async def setup(bot):
-    await connect_to_db()
+# async def setup(bot):
+#     await connect_to_db()
