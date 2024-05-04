@@ -2,8 +2,7 @@ import asyncio
 import datetime
 import uuid
 import discord
-from database.db import add_event, add_user, remove_participant, get_user_by_id
-import database.models as models
+import database.db as db
 
 
 class Event(discord.ui.View):
@@ -54,7 +53,7 @@ class Event(discord.ui.View):
         delay = self.time - datetime.datetime.now()
         await asyncio.sleep(delay.total_seconds())
         await self.message.edit(view=None, embed=self.embed)
-        await self.message.delete(delay=60*10) 
+        await self.message.delete(delay=60 * 10)
 
     async def notify_participants(self, text=None, embed=None):
         await self.author.send(content=text, embed=embed)
@@ -94,20 +93,17 @@ class Event(discord.ui.View):
         await interaction.response.send_message(view=self, embed=self.embed)
         self.message = await interaction.original_response()
 
-        author = await get_user_by_id(str(self.author.id))
+        author = await db.get_user_by_id(self.author.id)
         if author is None:
-            new_user = models.User(discord_id=str(self.author.id))
-            await add_user(new_user)
-
-        event_data = models.Event(
-            message_id=str(self.message.id),
-            name=self.event_name,
-            description=self.description,
-            author_id=str(self.author.id),
-            time = self.time,
-            participants_needed = self.participants_needed,
+            await db.add_user(self.author.id)
+        await db.add_event(
+            self.message.id,
+            self.event_name,
+            self.description,
+            self.author.id,
+            self.time,
+            self.participants_needed,
         )
-        await add_event(event_data)
 
     async def update_message(self):
         if self.participants_full():
@@ -135,13 +131,17 @@ class Event(discord.ui.View):
         self.message = interaction.message
 
         if (
-            interaction.user
-            not in self.participants
+            interaction.user not in self.participants
             and interaction.user != self.author
         ):
             if not self.participants_full():
                 await interaction.response.defer()
                 self.participants.append(interaction.user)
+
+                participant = await db.get_user_by_id(interaction.user.id)
+                if participant is None:
+                    await db.add_user(interaction.user.id)
+                await db.add_participant(interaction.user.id, self.message.id)
             else:
                 await interaction.response.send_message(
                     "Свободных мест нет", ephemeral=True
@@ -169,6 +169,8 @@ class Event(discord.ui.View):
         if interaction.user in self.participants:
             await interaction.response.defer()
             self.participants.remove(interaction.user)
+            await db.remove_participant(interaction.user.id, self.message.id)
+
         else:
             await interaction.response.send_message("Вы не записаны", ephemeral=True)
             return
@@ -190,6 +192,7 @@ class Event(discord.ui.View):
             self.deletion_task.cancel()
             await self.message.delete()
             self.stop()
+            await db.remove_event(self.message.id)
         else:
             await interaction.response.send_message(
                 "Эта команда доступна только автору события", ephemeral=True
