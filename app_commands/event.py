@@ -4,7 +4,7 @@ from discord import app_commands
 from views.event_view import Event
 from modals.event_form import EventForm
 
-
+@app_commands.guild_only()
 class Commands(app_commands.Group):
     @app_commands.command(name="create_event", description="Создание нового события")
     async def create_event(self, interaction: discord.Interaction):
