@@ -46,7 +46,9 @@ class Event(discord.ui.View):
             delay_minutes = self.time - datetime.datetime.now()
         await asyncio.sleep(delay_minutes.total_seconds())
         message = self.embed.copy()
-        message.title = f"У вас запланировано событие: \n{self.event_name}({self.message.jump_url})"
+        message.title = (
+            f"У вас запланировано событие: \n{self.event_name}({self.message.jump_url})"
+        )
         await self.notify_participants(embed=message)
 
     async def message_deletion(self):
@@ -182,12 +184,18 @@ class Event(discord.ui.View):
         style=discord.ButtonStyle.blurple,
         custom_id=str(uuid.uuid4()),
     )
-# TODO: доавить возможность отмены админом сервера
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user == self.author:
+        if (
+            interaction.user == self.author
+            or interaction.user.guild_permissions.administrator
+        ):
             await interaction.response.defer()
             embed = self.embed.copy()
-            embed.title = f"Событие отменено: \n{self.event_name}"
+            embed.title = (
+                f"Событие отменено автором: \n{self.event_name}"
+                if not interaction.user.guild_permissions.administrator
+                else f"Событие отменено админом сервера: \n{self.event_name}"
+            )
             await self.notify_participants(embed=embed)
             self.reminder_task.cancel()
             self.deletion_task.cancel()
@@ -196,5 +204,6 @@ class Event(discord.ui.View):
             await db.remove_event(self.message.id)
         else:
             await interaction.response.send_message(
-                "Эта команда доступна только автору события", ephemeral=True
+                "Эта команда доступна только автору события или админу сервера",
+                ephemeral=True,
             )
