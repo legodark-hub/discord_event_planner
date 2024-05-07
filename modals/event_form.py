@@ -78,4 +78,4 @@ class EventForm(discord.ui.Modal, title="Новое событие"):
             time,
             participants_needed,
         )
-        await event.send(interaction)
+        await event.send()
