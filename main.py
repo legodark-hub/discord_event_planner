@@ -39,6 +39,8 @@ async def on_ready():
 
     logger.info(f"Logged in as {bot.user}")
 
+# TODO: черный список
+# TODO: настройка для отдельного сервера
 
 def main():
     load_dotenv()
