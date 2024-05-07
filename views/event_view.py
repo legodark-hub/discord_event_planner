@@ -45,8 +45,8 @@ class Event(discord.ui.View):
         else:
             delay_minutes = self.time - datetime.datetime.now()
         await asyncio.sleep(delay_minutes.total_seconds())
-        message = self.embed
-        message.title = f"У вас запланировано событие: \n{self.event_name}"
+        message = self.embed.copy()
+        message.title = f"У вас запланировано событие: \n{self.event_name}({self.message.jump_url})"
         await self.notify_participants(embed=message)
 
     async def message_deletion(self):
@@ -88,10 +88,10 @@ class Event(discord.ui.View):
     def participants_full(self):
         return len(self.participants) >= self.participants_needed
 
-    async def send(self, interaction: discord.Interaction):
+    async def send(self):
         self.embed = self.create_message()
-        await interaction.response.send_message(view=self, embed=self.embed)
-        self.message = await interaction.original_response()
+        await self.interaction.response.send_message("Событие создано", ephemeral=True)
+        self.message = await self.interaction.channel.send(view=self, embed=self.embed)
 
         author = await db.get_user_by_id(self.author.id)
         if author is None:
@@ -186,7 +186,7 @@ class Event(discord.ui.View):
     async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user == self.author:
             await interaction.response.defer()
-            embed = self.embed
+            embed = self.embed.copy()
             embed.title = f"Событие отменено: \n{self.event_name}"
             await self.notify_participants(embed=embed)
             self.reminder_task.cancel()
