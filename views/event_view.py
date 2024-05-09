@@ -95,10 +95,11 @@ class Event(discord.ui.View):
         await self.interaction.response.send_message("Событие создано", ephemeral=True)
         self.message = await self.interaction.channel.send(view=self, embed=self.embed)
 
-        author = await db.get_user_by_id(self.author.id)
+        author = await db.get_user_by_id(db.get_session(), self.author.id)
         if author is None:
-            await db.add_user(self.author.id)
+            await db.add_user(db.get_session(), self.author.id)
         await db.add_event(
+            db.get_session(),
             self.message.id,
             self.event_name,
             self.description,
@@ -139,11 +140,12 @@ class Event(discord.ui.View):
             if not self.participants_full():
                 await interaction.response.defer()
                 self.participants.append(interaction.user)
-
-                participant = await db.get_user_by_id(interaction.user.id)
+                
+    
+                participant = await db.get_user_by_id(db.get_session(), interaction.user.id)
                 if participant is None:
-                    await db.add_user(interaction.user.id)
-                await db.add_participant(interaction.user.id, self.message.id)
+                    await db.add_user(db.get_session(), interaction.user.id)
+                await db.add_participant(db.get_session(), interaction.user.id, self.message.id)
             else:
                 await interaction.response.send_message(
                     "Свободных мест нет", ephemeral=True
@@ -171,7 +173,9 @@ class Event(discord.ui.View):
         if interaction.user in self.participants:
             await interaction.response.defer()
             self.participants.remove(interaction.user)
-            await db.remove_participant(interaction.user.id, self.message.id)
+            
+
+            await db.remove_participant(db.get_session(), interaction.user.id, self.message.id)
 
         else:
             await interaction.response.send_message("Вы не записаны", ephemeral=True)
@@ -201,7 +205,9 @@ class Event(discord.ui.View):
             self.deletion_task.cancel()
             await self.message.delete()
             self.stop()
-            await db.remove_event(self.message.id)
+            
+
+            await db.remove_event(db.get_session(), self.message.id)
         else:
             await interaction.response.send_message(
                 "Эта команда доступна только автору события или админу сервера",

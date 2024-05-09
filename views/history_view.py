@@ -17,14 +17,17 @@ class HistoryView(discord.ui.View):
         self.count: int = 0
 
     async def get_current_page_data(self):
+        session = db.get_session()
         if self.role == "автор":
             self.data = await db.get_events_by_author_id(
+                session,
                 discord_id=self.discord_id,
                 page=self.current_page,
                 per_page=self.separator,
             )
         else:
             self.data = await db.get_events_by_participant_id(
+                session,
                 discord_id=self.discord_id,
                 page=self.current_page,
                 per_page=self.separator,
@@ -53,12 +56,15 @@ class HistoryView(discord.ui.View):
         await self.message.edit(embed=self.embed, view=self)
 
     async def send(self, interaction: discord.Interaction):
+        session = db.get_session()
         if self.role == "автор":
             self.count = await db.get_events_by_author_id_count(
+                session,
                 discord_id=self.discord_id
             )
         else:
             self.count = await db.get_events_by_participant_id_count(
+                session,
                 discord_id=self.discord_id
             )
         await self.get_current_page_data()
