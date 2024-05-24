@@ -1,52 +1,65 @@
+# Discord Event Planner
 
-## Тема проекта
-Разработка бота для Discord для сбора на запланированные события
+Discord Event Planner is a bot designed to help users organize and participate in scheduled events within a Discord server. It integrates with a PostgreSQL database to store information about events and participants.
 
-## Цель проекта
-Целью проекта является создание бота, который позволит пользователям Discord легко организовывать и присоединяться к событиям или активностям на определенное время, а также хранить информацию о сборах и участниках в базе данных PostgreSQL с использованием SQLAlchemy.
+## Features
 
-## Задачи проекта
-1. Реализация базового функционала бота.
-2. Разработка функционала управления активностями (изменение названия, даты, отмена) и свзяанными с этим уведомлениями.
-3. Создание и настройка базы данных PostgreSQL с использованием SQLAlchemy для хранения информации о сборах и участниках.
+- Create and delete events
+- Notify users about upcoming events
+- View your history of events as author or participant
 
-## Используемые в разработке инструменты
-- Python
-- Discord.py
-- Discord API
-- SQLAlchemy
-- Alembic
-- PostgreSQL 
-- Git 
-- GitHub 
+## Installation
 
-## Введение
-(Описание проекта и его актуальности)
+### Prerequisites
 
-## Глава 1. Основы разработки Discord-ботов
+- Python 3.8+
+- PostgreSQL
 
-### 1.1. Введение в Discord API
+### Steps
 
-### 1.2. Основные компоненты и принципы работы библиотеки Discord.py
+1. Clone the repository:
 
-### 1.3. Интеграция с базами данных
+    ```bash
+    git clone https://github.com/legodark-hub/discord_event_planner.git
+    cd discord_event_planner
+    ```
 
-## Глава 2. Разработка бота и интеграция с базой данных
+2. Set up a virtual environment and install dependencies:
 
-### 2.1. Настройка окружения разработки
+    ```bash
+    python -m venv venv
+    source venv/bin/activate   # On Windows, use `venv\Scripts\activate`
+    pip install -r requirements.txt
+    ```
 
-### 2.2. Создание аккаунта бота
+3. Create a bot account in the [Discord Developer Portal](https://discord.com/developers/applications).
+In the Installation page select the `bot` and `applications.commands` scope, generate Install link and open it in browser to invite the created bot to your server. In the Bot page generate the bot token.
 
-### 2.3. Создание базового бота
+4. Set up PostgreSQL
 
-### 2.4. Разработка основного функционала бота
+5. Create a `.env` file and create there variables with your discord token and connection link to your database:
 
-### 2.5. Интеграция бота с базой данных
+    ```bash
+    DISCORD_TOKEN=your_discord_bot_token
+    DATABASE_URL=postgresql+asyncpg://user:password@localhost/dbname
+    ```
 
-## Дальнейшее развитие проекта
+6. Run database migrations:
 
-## Заключение
-(Выводы и общий результат работы)
+    ```bash
+    alembic upgrade head
+    ```
 
-## Список используемой литературы
-(Ссылки на использованные ресурсы и литературу)
+7. Start the bot:
+
+    ```bash
+    python main.py
+    ```
+
+## Usage
+
+Start typing `/` in a Discord server where this bot exists to get a list of slash commands for this bot.
+
+## Contributing
+
+Feel free to submit issues and pull requests. Contributions are welcome!
