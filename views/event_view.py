@@ -122,11 +122,6 @@ class Event(discord.ui.View):
         self.embed = self.create_message()
         await self.message.edit(view=self, embed=self.embed)
 
-    def disable_buttons(self):
-        self.join.disabled = True
-        self.decline.disabled = True
-        self.cancel.disabled = True
-
     @discord.ui.button(
         label="Записаться", style=discord.ButtonStyle.green, custom_id=str(uuid.uuid4())
     )
