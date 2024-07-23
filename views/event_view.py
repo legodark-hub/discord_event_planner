@@ -25,7 +25,9 @@ class Event(discord.ui.View):
         self.participants_needed = int(participants_needed)
         self.participants = []
         self.id = uuid.uuid4()
-        self.reminder_time = 5
+        self.server_id = interaction.guild.id
+        self.reminder_delay = 5
+        self.deletion_delay = 60 * 10
         self.reminder_task = asyncio.create_task(self.set_reminder())
         self.deletion_task = asyncio.create_task(self.message_deletion())
         embed: discord.Embed = self.create_message()
@@ -37,10 +39,10 @@ class Event(discord.ui.View):
     async def set_reminder(self):
         delay_minutes: datetime.timedelta
         if self.time - datetime.datetime.now() >= datetime.timedelta(
-            minutes=self.reminder_time
+            minutes=self.reminder_delay
         ):
             delay_minutes = (self.time - datetime.datetime.now()) - datetime.timedelta(
-                minutes=self.reminder_time
+                minutes=self.reminder_delay
             )
         else:
             delay_minutes = self.time - datetime.datetime.now()
@@ -106,6 +108,7 @@ class Event(discord.ui.View):
             self.author.id,
             self.time,
             self.participants_needed,
+            server_id=self.server_id,
         )
 
     async def update_message(self):
