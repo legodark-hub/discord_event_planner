@@ -28,7 +28,14 @@ class Event(Base):
     participants = relationship(
         "User", secondary="event_participants", back_populates="participated_events"
     )
-
+    server_id = sqlalchemy.Column(sqlalchemy.BigInteger, sqlalchemy.ForeignKey("servers.server_id"))
+    
+class Server(Base):
+    __tablename__ = "servers"
+    server_id = mapped_column(sqlalchemy.BigInteger, primary_key=True)
+    remind_delay = sqlalchemy.Column(sqlalchemy.Integer, default=5)
+    message_delete_delay = sqlalchemy.Column(sqlalchemy.Integer, default=10)
+    ping_role = sqlalchemy.Column(sqlalchemy.String, default="None")
 
 class EventParticipants(Base):
     __tablename__ = "event_participants"
