@@ -1,8 +1,8 @@
 import os
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncResult
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, joinedload
-from database.models import Base, EventParticipants, User, Event
+from database.models import EventParticipants, User, Event, Server
 from contextlib import asynccontextmanager
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -53,11 +53,11 @@ async def get_events_by_author_id(session, discord_id, page=1, per_page=10):
         )
         return events.scalars().unique().all()
 
+
 async def get_events_by_author_id_count(session, discord_id):
     async with session as session:
         events = await session.execute(
-            select(func.count()).select_from(Event)
-            .where(Event.author_id == discord_id)
+            select(func.count()).select_from(Event).where(Event.author_id == discord_id)
         )
         return events.scalar()
 
@@ -79,7 +79,8 @@ async def get_events_by_participant_id(session, discord_id, page=1, per_page=10)
 async def get_events_by_participant_id_count(session, discord_id):
     async with session as session:
         events = await session.execute(
-            select(func.count()).select_from(Event)
+            select(func.count())
+            .select_from(Event)
             .join(EventParticipants)
             .where(EventParticipants.user_id == discord_id)
         )
@@ -97,6 +98,14 @@ async def get_participant(session, discord_id, event_id):
         return participant.scalar_one_or_none()
 
 
+async def get_server(session, server_id):
+    async with session as session:
+        server = await session.execute(
+            select(Server).where(Server.server_id == server_id)
+        )
+        return server.scalar_one_or_none()
+
+
 async def add_user(session, discord_id):
     async with session as session:
         new_user = User(discord_id=discord_id)
@@ -105,7 +114,14 @@ async def add_user(session, discord_id):
 
 
 async def add_event(
-    session, message_id, name, description, author_id, time, participants_needed
+    session,
+    message_id,
+    name,
+    description,
+    author_id,
+    time,
+    participants_needed,
+    server_id,
 ):
     async with session as session:
         new_event = Event(
@@ -115,16 +131,48 @@ async def add_event(
             author_id=author_id,
             time=time,
             participants_needed=participants_needed,
+            server_id=server_id,
         )
         session.add(new_event)
         await session.commit()
 
 
-async def add_participant(session,  participant_id, event_id):
+async def add_participant(session, participant_id, event_id):
     async with session as session:
         new_participant = EventParticipants(event_id=event_id, user_id=participant_id)
         session.add(new_participant)
         await session.commit()
+
+
+async def add_server(session, server_id):
+    async with session as session:
+        new_server = Server(server_id=server_id)
+        session.add(new_server)
+        await session.commit()
+
+
+async def update_server_remind_delay(session, server_id, remind_delay):
+    async with session as session:
+        server = await get_server(session, server_id)
+        if server:
+            server.remind_delay = remind_delay
+            await session.commit()
+
+
+async def update_server_delete_delay(session, server_id, delete_delay):
+    async with session as session:
+        server = await get_server(session, server_id)
+        if server:
+            server.message_delete_delay = delete_delay
+            await session.commit()
+
+
+async def update_server_ping_users(session, server_id, ping_role):
+    async with session as session:
+        server = await get_server(session, server_id)
+        if server:
+            server.ping_role = ping_role
+            await session.commit()
 
 
 async def remove_event(session, message_id):
