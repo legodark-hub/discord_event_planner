@@ -26,12 +26,18 @@ class Event(discord.ui.View):
         self.participants = []
         self.id = uuid.uuid4()
         self.server_id = interaction.guild.id
-        self.reminder_delay = 5
-        self.deletion_delay = 60 * 10
+        self.server = asyncio.run(self.get_server())
         self.reminder_task = asyncio.create_task(self.set_reminder())
         self.deletion_task = asyncio.create_task(self.message_deletion())
         embed: discord.Embed = self.create_message()
         message: discord.abc.Messageable = None
+
+    async def get_server(self):
+        server = await db.get_server(db.get_session(), self.server_id)
+        if server is None:
+            await db.add_server(db.get_session(), self.server_id)
+            server = await db.get_server(db.get_session(), self.server_id)
+        return server
 
     async def is_author(self, interaction: discord.Interaction) -> bool:
         return interaction.user == self.author
@@ -39,10 +45,10 @@ class Event(discord.ui.View):
     async def set_reminder(self):
         delay_minutes: datetime.timedelta
         if self.time - datetime.datetime.now() >= datetime.timedelta(
-            minutes=self.reminder_delay
+            minutes=int(self.server.remind_delay)
         ):
             delay_minutes = (self.time - datetime.datetime.now()) - datetime.timedelta(
-                minutes=self.reminder_delay
+                minutes=int(self.server.remind_delay)
             )
         else:
             delay_minutes = self.time - datetime.datetime.now()
@@ -57,7 +63,7 @@ class Event(discord.ui.View):
         delay = self.time - datetime.datetime.now()
         await asyncio.sleep(delay.total_seconds())
         await self.message.edit(view=None, embed=self.embed)
-        await self.message.delete(delay=60 * 10)
+        await self.message.delete(delay=int(self.server.message_delete_delay))
 
     async def notify_participants(self, text=None, embed=None):
         await self.author.send(content=text, embed=embed)
@@ -138,8 +144,7 @@ class Event(discord.ui.View):
             if not self.participants_full():
                 await interaction.response.defer()
                 self.participants.append(interaction.user)
-                
-    
+
                 participant = await db.get_user_by_id(db.get_session(), interaction.user.id)
                 if participant is None:
                     await db.add_user(db.get_session(), interaction.user.id)
@@ -171,7 +176,6 @@ class Event(discord.ui.View):
         if interaction.user in self.participants:
             await interaction.response.defer()
             self.participants.remove(interaction.user)
-            
 
             await db.remove_participant(db.get_session(), interaction.user.id, self.message.id)
 
@@ -203,7 +207,6 @@ class Event(discord.ui.View):
             self.deletion_task.cancel()
             await self.message.delete()
             self.stop()
-            
 
             await db.remove_event(db.get_session(), self.message.id)
         else:
