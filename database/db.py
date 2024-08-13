@@ -156,6 +156,7 @@ async def update_server_remind_delay(session, server_id, remind_delay):
         server = await get_server(session, server_id)
         if server:
             server.remind_delay = remind_delay
+            session.add(server)
             await session.commit()
 
 
@@ -164,14 +165,16 @@ async def update_server_delete_delay(session, server_id, delete_delay):
         server = await get_server(session, server_id)
         if server:
             server.message_delete_delay = delete_delay
+            session.add(server)
             await session.commit()
 
 
-async def update_server_ping_users(session, server_id, ping_role):
+async def update_server_ping_role(session, server_id, ping_role):
     async with session as session:
         server = await get_server(session, server_id)
         if server:
             server.ping_role = ping_role
+            session.add(server)
             await session.commit()
 
 
