@@ -37,6 +37,7 @@ async def reset_db():
         await conn.run_sync(Base.metadata.drop_all)
         return await conn.run_sync(Base.metadata.create_all)
 
+
 @pytest.fixture
 async def set_data(reset_db):
     await reset_db
@@ -45,11 +46,12 @@ async def set_data(reset_db):
     message2_id = 123456789
     participant_id = 123456780
     await db.add_user(get_session(), 123456789)
+    await db.add_server(get_session(), 1)
     await db.add_event(
-        get_session(), message1_id, "test", "test", discord_id, datetime.now(), 1
+        get_session(), message1_id, "test", "test", discord_id, datetime.now(), 1, 1
     )
     await db.add_event(
-        get_session(), message2_id, "test2", "test2", discord_id, datetime.now(), 1
+        get_session(), message2_id, "test2", "test2", discord_id, datetime.now(), 1, 1
     )
     await db.add_user(get_session(), 123456780)
     await db.add_participant(get_session(), participant_id, message1_id)
@@ -67,6 +69,45 @@ async def test_add_user(reset_db):
 
 
 @pytest.mark.asyncio
+async def test_add_server(reset_db):
+    await reset_db
+    server_id = 1
+    await db.add_server(get_session(), server_id)
+    server = await db.get_server(get_session(), server_id)
+    assert server is not None
+
+
+@pytest.mark.asyncio
+async def test_update_server_remind_delay(set_data):
+    await set_data
+    server_id = 1
+    remind_delay = 13
+    await db.update_server_remind_delay(get_session(), server_id, remind_delay)
+    server = await db.get_server(get_session(), server_id)
+    assert server.remind_delay == remind_delay
+
+
+@pytest.mark.asyncio
+async def test_update_server_message_delete_delay(set_data):
+    await set_data
+    server_id = 1
+    message_delete_delay = 13
+    await db.update_server_delete_delay(get_session(), server_id, message_delete_delay)
+    server = await db.get_server(get_session(), server_id)
+    assert server.message_delete_delay == message_delete_delay
+
+
+@pytest.mark.asyncio
+async def test_update_server_ping_role(set_data):
+    await set_data
+    server_id = 1
+    ping_role = "test"
+    await db.update_server_ping_role(get_session(), server_id, ping_role)
+    server = await db.get_server(get_session(), server_id)
+    assert server.ping_role == ping_role
+
+
+@pytest.mark.asyncio
 async def test_add_event(reset_db):
     await reset_db
     message_id = 123456789
@@ -75,7 +116,9 @@ async def test_add_event(reset_db):
     author_id = 123456789
     time = datetime.now()
     participants_needed = 1
+    server_id = 1
     await db.add_user(get_session(), author_id)
+    await db.add_server(get_session(), server_id)
     await db.add_event(
         get_session(),
         message_id,
@@ -84,6 +127,7 @@ async def test_add_event(reset_db):
         author_id,
         time,
         participants_needed,
+        server_id,
     )
     event = await db.get_event_by_id(get_session(), message_id)
     assert event is not None
@@ -96,8 +140,9 @@ async def test_add_participant(reset_db):
     message_id = 123456789
     participant_id = 123456780
     await db.add_user(get_session(), discord_id)
+    await db.add_server(get_session(), 1)
     await db.add_event(
-        get_session(), message_id, "test", "test", discord_id, datetime.now(), 1
+        get_session(), message_id, "test", "test", discord_id, datetime.now(), 1, 1
     )
     await db.add_user(get_session(), participant_id)
     await db.add_participant(get_session(), participant_id, message_id)
